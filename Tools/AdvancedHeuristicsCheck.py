@@ -181,18 +181,23 @@ def detect_redirects(url: str) -> bool:
 #=======================Similarity to Known Brands========================
 def similarity_to_known(domain: str) -> dict:
     """
-    Calcula similaridade com todas as marcas usando Levenshtein
+    Calcula similaridade com todas as marcas usando Levenshtein.
     """
+    # Normaliza removendo www. do início, se presente
+    d = domain.lower()
+    if d.startswith("www."):
+        d = d[len("www."):]
+
     best_brand = None
     best_ratio = 0.0
 
     for brand in KNOWN_BRANDS:
-        # usa o ratio da biblioteca Levenshtein
-        ratio = Levenshtein.ratio(domain, brand)
+        # compara com domínio base
+        ratio = Levenshtein.ratio(d, brand)
         if ratio > best_ratio:
             best_ratio, best_brand = ratio, brand
 
-    # se for match exato, zera (facebook.com → facebook.com não é phishing)
+    # Se for match perfeito, zera
     if best_ratio == 1.0:
         best_ratio = 0.0
 

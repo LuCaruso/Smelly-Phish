@@ -5,6 +5,8 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
+import math
+
 
 from Tools.KnownSitesCheck import (
     extract_domain as extract_known_domain,
@@ -270,8 +272,13 @@ if st.button("Verificar") and url:
     basic_flags = sum([int(last['Subdomínios'] > 2), int(last['Números no domínio']), int(bool(last['Caracteres especiais']))])
     adv_flags = sum([
         last['Idade domínio (dias)'] is not None and last['Idade domínio (dias)'] < 30,
-        last['DNS Dinâmico'], not last['Cert match'], last['Redirecionamentos'],
-        last['Similaridade score'] > 0.8, last['Formulário de login'], last['Solicitação sensível']
+        last['DNS Dinâmico'],
+        last['Emissor SSL'] is None,
+        not last['Cert match'],
+        last['Redirecionamentos'],
+        last['Similaridade score'] > 0.8,
+        last['Formulário de login'],
+        last['Solicitação sensível']
     ])
     rep_flags = sum([int(last['DNSBL positivo']), int(last['OAuth falso'])])
     total_flags = known_flags + basic_flags + adv_flags + rep_flags
@@ -291,26 +298,53 @@ if st.button("Verificar") and url:
         "</div>",
         unsafe_allow_html=True
     )
+
     def make_autopct(total):
         def autopct(pct):
+            if total == 0 or not math.isfinite(pct):
+                return ""
             val = int(round(pct * total / 100.0))
-            return str(val)
+            return str(val) if val > 0 else ""
         return autopct
-    fig, ax = plt.subplots(figsize=(6,6), facecolor='#303030')
-    fig.patch.set_facecolor('#303030')
-    patches, texts, autotexts = ax.pie(sizes, labels=None, autopct=make_autopct(total_flags), startangle=140,
-                                       colors=colors, wedgeprops={'edgecolor': 'white', 'linewidth': 1})
-    ax.axis('equal')
-    legend = ax.legend(patches, [f"{label} ({count})" for label, count in zip(labels, sizes)], title='Categorias', title_fontsize='large',
-                       loc='upper center', bbox_to_anchor=(0.5, -0.1), ncol=2,
-                       frameon=False, fontsize='medium', labelcolor='white')
-    legend.get_title().set_color('white')
-    for txt in texts: txt.set_visible(False)
-    for autotxt in autotexts: autotxt.set_color('white'); autotxt.set_weight('bold')
-    plt.tight_layout(rect=[0,0,1,0.85])
-    st.pyplot(fig)
-    st.markdown("</div>", unsafe_allow_html=True)
 
+    if total_flags > 0:
+        fig, ax = plt.subplots(figsize=(6,6), facecolor='#303030')
+        fig.patch.set_facecolor('#303030')
+        patches, texts, autotexts = ax.pie(
+            sizes,
+            labels=None,
+            startangle=140,
+            colors=colors,
+            wedgeprops={'edgecolor': 'white', 'linewidth': 1},
+            autopct=make_autopct(total_flags)
+        )
+        ax.axis('equal')
+        legend = ax.legend(
+            patches,
+            [f"{label} ({count})" for label, count in zip(labels, sizes)],
+            title='Categorias',
+            title_fontsize='large',
+            loc='upper center',
+            bbox_to_anchor=(0.5, -0.1),
+            ncol=2,
+            frameon=False,
+            fontsize='medium',
+            labelcolor='white'
+        )
+        legend.get_title().set_color('white')
+        for txt in texts: txt.set_visible(False)
+        for autotxt in autotexts:
+            autotxt.set_color('white')
+            autotxt.set_weight('bold')
+        plt.tight_layout(rect=[0,0,1,0.85])
+        st.pyplot(fig)
+    else:
+        st.markdown(
+            "<div class='module-block' style='background-color:#303030; color:white; text-align:center; padding:1rem;'>"
+            "Nenhuma flag de phishing detectada."
+            "</div>",
+            unsafe_allow_html=True
+        )
     # Gauge de probabilidade de phishing
     score = 0
 
