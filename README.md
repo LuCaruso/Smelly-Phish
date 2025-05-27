@@ -9,7 +9,7 @@ Smelly Phish é uma ferramenta interativa desenvolvida em Python e Streamlit par
 1. Clone este repositório:
 
 ```bash
-git clone https://github.com/seu-usuario/smelly-phish.git
+git clone https://github.com/LuCaruso/Smelly-Phish.git
 cd smelly-phish
 ```
 
